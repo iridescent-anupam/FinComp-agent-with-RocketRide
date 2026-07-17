@@ -1,0 +1,290 @@
+{
+  "project_id": "1e614f36-c79b-4610-9f8b-fd429cffbc07",
+  "source": "webhook_1",
+  "components": [
+    {
+      "id": "webhook_1",
+      "provider": "webhook",
+      "name": "Webhook",
+      "config": {
+        "hideForm": true,
+        "mode": "Source",
+        "parameters": {},
+        "type": "webhook"
+      },
+      "ui": {
+        "position": {
+          "x": -10,
+          "y": -190
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      }
+    },
+    {
+      "id": "ner_1",
+      "provider": "ner",
+      "name": "Named Entity Recognition",
+      "config": {
+        "profile": "bertLarge",
+        "bertLarge": {
+          "aggregation_strategy": "simple",
+          "min_confidence": 0.85,
+          "store_in_metadata": true
+        }
+      },
+      "ui": {
+        "position": {
+          "x": 230,
+          "y": -190
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "text",
+          "from": "webhook_1"
+        }
+      ]
+    },
+    {
+      "id": "anonymize_1",
+      "provider": "anonymize_text",
+      "name": "Anonymize",
+      "config": {
+        "profile": "glinerPIILarge",
+        "glinerPIILarge": {
+          "anonymizeChar": "█"
+        }
+      },
+      "ui": {
+        "position": {
+          "x": 470,
+          "y": -190
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "text",
+          "from": "ner_1"
+        }
+      ]
+    },
+    {
+      "id": "question_1",
+      "provider": "question",
+      "name": "Question",
+      "config": {
+        "type": "question"
+      },
+      "ui": {
+        "position": {
+          "x": 710,
+          "y": -190
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "text",
+          "from": "anonymize_1"
+        }
+      ]
+    },
+    {
+      "id": "prompt_1",
+      "provider": "prompt",
+      "name": "Compliance Prompt",
+      "config": {
+        "instructions": [
+          "You are a data-privacy compliance analysis pipeline. Perform three sequential reasoning passes on the anonymized description below and treat them as genuinely separate: do not let your Verdict reasoning bias your Audit critique — actively look for a reason the Verdict could be wrong before confirming it.",
+          "The text has already been redacted of PII by an upstream anonymization step (names/emails/phones/etc. appear as block characters, e.g. █████). Do not attempt to reconstruct or guess redacted values.",
+          "Closed set of regulation entries — cite ONLY these ids, never invent or reference any other regulation:\n- gdpr_art17 | GDPR Article 17 — Right to Erasure | EU | A data subject can request deletion of their personal data, and the controller must comply without undue delay when there is no overriding legal ground for continued processing. Silence or indefinite retention after a valid request, with no documented justification, is a violation.\n- gdpr_art44_49 | GDPR Chapter V (Articles 44-49) — International Transfers | EU | Personal data may only be transferred outside the EU/EEA to a country with an adequacy decision, or where appropriate safeguards are in place (e.g. Standard Contractual Clauses). Transfers without one are a violation.\n- gdpr_art7 | GDPR Article 7 — Conditions for Consent | EU | Consent must be freely given, specific, informed, and unambiguous via clear affirmative action. Pre-ticked boxes or bundled consent are not valid. Withdrawal must be as easy as giving consent.\n- ccpa_1798_120 | CCPA §1798.120 — Right to Opt-Out of Sale/Sharing | California, US | Consumers have the right to direct a business not to sell or share their personal information. Unreasonable delay in honoring a verified opt-out request is a violation.\n- ccpa_1798_115 | CCPA §1798.115 / §1798.135 — Disclosure of Sale or Sharing | California, US | A business must disclose in its privacy policy if it sells or shares personal information, and provide a clear 'Do Not Sell or Share My Personal Information' mechanism. Undisclosed sharing without this is a violation.",
+          "Step 1 (Triage): extract practice (short description of the data-handling practice at issue), data_type (kind of personal data involved), jurisdiction (EU, California US, or unclear), and regulation_guess (must be exactly one id from the closed set above — never invent one), and risk_level (low, medium, or high).",
+          "Step 2 (Verdict): using ONLY the matched regulation entry's summary text above (never facts outside it), reason to a verdict: exactly one of compliant, non-compliant, or needs_review. Write reasoning under 100 words. Set cited_regulation to the regulation id used and confidence to low, medium, or high.",
+          "Step 3 (Audit): independently re-examine step 2 as a skeptical auditor would — re-read the matched regulation summary again from scratch and check whether it actually supports the stated verdict, not just that a regulation was cited. If you find a flaw, set audit_passed to false, explain the disagreement in audit_notes (under 80 words), and set final_verdict to your corrected verdict. If the verdict is sound, set audit_passed to true and still briefly explain why in audit_notes — never leave it empty. final_verdict must be exactly one of compliant, non-compliant, or needs_review.",
+          "Generate a short audit_id as the literal string 'audit-' followed by 8 hex-looking characters you make up.",
+          "Output ONLY a single JSON object with exactly these keys, no prose, no markdown code fences, no explanation text outside the JSON: {\"practice\": string, \"data_type\": string, \"jurisdiction\": string, \"regulation_guess\": string, \"risk_level\": string, \"verdict\": string, \"reasoning\": string, \"cited_regulation\": string, \"confidence\": string, \"audit_passed\": boolean, \"audit_notes\": string, \"final_verdict\": string, \"audit_id\": string, \"redacted_text_seen\": string (echo the anonymized input text you were given, verbatim, so the caller can verify redaction happened)}"
+        ]
+      },
+      "ui": {
+        "position": {
+          "x": 950,
+          "y": -190
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "questions",
+          "from": "question_1"
+        }
+      ]
+    },
+    {
+      "id": "guardrails_input_1",
+      "provider": "guardrails",
+      "name": "Guardrails (Pre-LLM)",
+      "config": {
+        "profile": "custom",
+        "custom": {
+          "policy_mode": "block",
+          "enable_prompt_injection": true,
+          "enable_content_safety": false,
+          "enable_pii_detection": true,
+          "enable_hallucination_check": false,
+          "max_input_length": 8000,
+          "max_tokens_estimate": 0,
+          "expected_format": "",
+          "blocked_topics": [],
+          "allowed_topics": []
+        }
+      },
+      "ui": {
+        "position": {
+          "x": 1190,
+          "y": -190
+        },
+        "nodeType": "default",
+        "formDataValid": false
+      },
+      "input": [
+        {
+          "lane": "questions",
+          "from": "prompt_1"
+        }
+      ]
+    },
+    {
+      "id": "llm_openai_1",
+      "provider": "llm_openai",
+      "name": "OpenAI",
+      "config": {
+        "profile": "openai-4o-mini",
+        "openai-4o-mini": {
+          "apikey": "${ROCKETRIDE_OPENAI_KEY}"
+        }
+      },
+      "ui": {
+        "position": {
+          "x": 1430,
+          "y": -190
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "questions",
+          "from": "guardrails_input_1"
+        }
+      ]
+    },
+    {
+      "id": "guardrails_final_1",
+      "provider": "guardrails",
+      "name": "Guardrails (Final Output)",
+      "config": {
+        "profile": "custom",
+        "custom": {
+          "policy_mode": "block",
+          "enable_prompt_injection": false,
+          "enable_content_safety": false,
+          "enable_pii_detection": true,
+          "enable_hallucination_check": false,
+          "max_input_length": 0,
+          "max_tokens_estimate": 700,
+          "expected_format": "json",
+          "blocked_topics": [],
+          "allowed_topics": [
+            "gdpr_art17",
+            "gdpr_art44_49",
+            "gdpr_art7",
+            "ccpa_1798_120",
+            "ccpa_1798_115"
+          ]
+        }
+      },
+      "ui": {
+        "position": {
+          "x": 1670,
+          "y": -190
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "answers",
+          "from": "llm_openai_1"
+        }
+      ]
+    },
+    {
+      "id": "mem_persistent_1",
+      "provider": "memory_persistent",
+      "name": "Persistent Memory (Audit Trail)",
+      "config": {
+        "auto_summarize": false,
+        "backend": "memory",
+        "max_history": 200,
+        "redis_host": "localhost",
+        "redis_port": 6379,
+        "session_ttl_hours": 0,
+        "redis_password": "password",
+        "parameters": {
+          "google": {}
+        }
+      },
+      "ui": {
+        "position": {
+          "x": 1910,
+          "y": -190
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "answers",
+          "from": "guardrails_final_1"
+        }
+      ]
+    },
+    {
+      "id": "response_answers_1",
+      "provider": "response_answers",
+      "name": "Return Answers",
+      "config": {
+        "laneName": "answers"
+      },
+      "ui": {
+        "position": {
+          "x": 2150,
+          "y": -190
+        },
+        "nodeType": "default",
+        "formDataValid": true
+      },
+      "input": [
+        {
+          "lane": "answers",
+          "from": "mem_persistent_1"
+        }
+      ]
+    }
+  ],
+  "version": 1,
+  "docRevision": 2,
+  "isLocked": false,
+  "snapToGrid": true,
+  "snapGridSize": [
+    10,
+    10
+  ]
+}

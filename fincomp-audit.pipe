@@ -1,0 +1,152 @@
+{
+  "project_id": "e0bfa150-672d-4ff7-9416-29229324e818",
+  "source": "webhook_1",
+  "components": [
+    {
+      "id": "webhook_1",
+      "provider": "webhook",
+      "name": "Webhook",
+      "config": {
+        "hideForm": true,
+        "mode": "Source",
+        "parameters": {},
+        "type": "webhook"
+      },
+      "ui": { "position": { "x": -10, "y": -190 }, "nodeType": "default", "formDataValid": true }
+    },
+    {
+      "id": "ner_1",
+      "provider": "ner",
+      "name": "Named Entity Recognition",
+      "config": {
+        "profile": "bertLarge",
+        "bertLarge": { "aggregation_strategy": "simple", "min_confidence": 0.85, "store_in_metadata": true }
+      },
+      "ui": { "position": { "x": 230, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "text", "from": "webhook_1" } ]
+    },
+    {
+      "id": "anonymize_1",
+      "provider": "anonymize_text",
+      "name": "Anonymize",
+      "config": {
+        "profile": "glinerPIILarge",
+        "glinerPIILarge": { "anonymizeChar": "█" }
+      },
+      "ui": { "position": { "x": 470, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "text", "from": "ner_1" } ]
+    },
+    {
+      "id": "question_1",
+      "provider": "question",
+      "name": "Question",
+      "config": { "type": "question" },
+      "ui": { "position": { "x": 710, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "text", "from": "anonymize_1" } ]
+    },
+    {
+      "id": "prompt_1",
+      "provider": "prompt",
+      "name": "Audit Prompt",
+      "config": {
+        "instructions": [
+          "You are Stage 3 of 3 (Audit) in a data-privacy compliance pipeline — an independent, skeptical reviewer. You did not produce the Verdict yourself; treat it as a claim to check, not a fact.",
+          "The input contains two marked sections: [VERDICT] a JSON object produced by the Verdict stage, and [RETRIEVED_REGULATIONS] the regulation entries a retrieval step matched to this case — your ONLY valid source of regulatory text, re-read from scratch here rather than trusting [VERDICT]'s paraphrase of what the regulation says.",
+          "Find the entry in [RETRIEVED_REGULATIONS] matching [VERDICT]'s cited_regulation id. Re-examine independently whether that entry's summary actually supports [VERDICT]'s stated verdict — actively look for a reason it might not, rather than confirming by default.",
+          "If you find a flaw, set audit_passed to false, explain the disagreement in audit_notes (under 80 words), and set final_verdict to your corrected verdict. If the verdict is sound, set audit_passed to true and still briefly explain why in audit_notes — never leave it empty. final_verdict must be exactly one of compliant, non-compliant, or needs_review.",
+          "Generate a short audit_id as the literal string 'audit-' followed by 8 hex-looking characters you make up.",
+          "Output ONLY a single JSON object, no prose, no markdown code fences: {\"audit_passed\": boolean, \"audit_notes\": string, \"final_verdict\": string, \"cited_regulation\": string, \"audit_id\": string}"
+        ]
+      },
+      "ui": { "position": { "x": 950, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "questions", "from": "question_1" } ]
+    },
+    {
+      "id": "guardrails_input_1",
+      "provider": "guardrails",
+      "name": "Guardrails — input safety",
+      "config": {
+        "profile": "custom",
+        "custom": {
+          "policy_mode": "block",
+          "enable_prompt_injection": true,
+          "enable_content_safety": false,
+          "enable_pii_detection": true,
+          "enable_hallucination_check": false,
+          "max_input_length": 8000,
+          "max_tokens_estimate": 0,
+          "expected_format": "",
+          "blocked_topics": [],
+          "allowed_topics": []
+        }
+      },
+      "ui": { "position": { "x": 1190, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "questions", "from": "prompt_1" } ]
+    },
+    {
+      "id": "llm_openai_1",
+      "provider": "llm_openai",
+      "name": "OpenAI",
+      "config": {
+        "profile": "openai-4o-mini",
+        "openai-4o-mini": { "apikey": "${ROCKETRIDE_OPENAI_KEY}" }
+      },
+      "ui": { "position": { "x": 1430, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "questions", "from": "guardrails_input_1" } ]
+    },
+    {
+      "id": "guardrails_output_1",
+      "provider": "guardrails",
+      "name": "Guardrails — output validity",
+      "config": {
+        "profile": "custom",
+        "custom": {
+          "policy_mode": "block",
+          "enable_prompt_injection": false,
+          "enable_content_safety": false,
+          "enable_pii_detection": true,
+          "enable_hallucination_check": false,
+          "max_input_length": 0,
+          "max_tokens_estimate": 400,
+          "expected_format": "json",
+          "blocked_topics": [],
+          "allowed_topics": [
+            "gdpr_art17", "gdpr_art44_49", "gdpr_art7", "ccpa_1798_120", "ccpa_1798_115",
+            "compliant", "non-compliant", "needs_review"
+          ]
+        }
+      },
+      "ui": { "position": { "x": 1670, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "answers", "from": "llm_openai_1" } ]
+    },
+    {
+      "id": "mem_persistent_1",
+      "provider": "memory_persistent",
+      "name": "Persistent Memory (Audit Trail)",
+      "config": {
+        "backend": "memory",
+        "redis_host": "localhost",
+        "redis_port": 6379,
+        "redis_password": "",
+        "session_ttl_hours": 0,
+        "max_history": 200,
+        "auto_summarize": false
+      },
+      "ui": { "position": { "x": 1910, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "answers", "from": "guardrails_output_1" } ]
+    },
+    {
+      "id": "response_answers_1",
+      "provider": "response_answers",
+      "name": "Return Answers",
+      "config": { "laneName": "answers" },
+      "ui": { "position": { "x": 2150, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "answers", "from": "mem_persistent_1" } ]
+    }
+  ],
+  "version": 1,
+  "docRevision": 1,
+  "isLocked": false,
+  "snapToGrid": true,
+  "snapGridSize": [10, 10]
+}

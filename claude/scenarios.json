@@ -1,0 +1,38 @@
+[
+  {
+    "id": "gdpr_erasure_violation",
+    "label": "GDPR — Ignored Deletion Request",
+    "text": "We are a US-based SaaS company. An EU customer requested deletion of their account and personal data eight months ago under their right to erasure. We still have their email address, name, and purchase history in our production database and in three backup snapshots, with no justification for retention and no response ever sent to the customer.",
+    "expected_direction": "non-compliant"
+  },
+  {
+    "id": "ccpa_response_time_violation",
+    "label": "CCPA — Slow Opt-Out Response",
+    "text": "We are a California-based retailer. A California resident submitted a 'Do Not Sell My Personal Information' request through our website. It has now been 20 days and we have not yet stopped sharing their data with our ad-tech partners or confirmed the request was processed.",
+    "expected_direction": "non-compliant"
+  },
+  {
+    "id": "ccpa_sale_disclosure",
+    "label": "CCPA — Undisclosed Data Sale",
+    "text": "We are a mobile app company based in California. We share detailed user behavior data with third-party advertising partners in exchange for reduced ad-serving fees, but our privacy policy does not disclose this as a 'sale' or 'sharing' of personal information, and we don't offer a way for users to opt out.",
+    "expected_direction": "non-compliant"
+  },
+  {
+    "id": "gdpr_cross_border_transfer",
+    "label": "GDPR — Unsafeguarded Data Transfer",
+    "text": "We are an EU-based fintech startup. We recently started sending our EU customers' financial and identity data to a data processing vendor located in a country with no EU adequacy decision, and we have not put Standard Contractual Clauses or any other transfer safeguard in place.",
+    "expected_direction": "non-compliant"
+  },
+  {
+    "id": "clearly_compliant",
+    "label": "GDPR — Compliant Consent Flow",
+    "text": "We are an EU-based newsletter platform. We collect subscriber emails only after an explicit opt-in checkbox that is unchecked by default, we state clearly what the email will be used for, we retain the email only as long as the subscription is active, and we delete it within 30 days of an unsubscribe or deletion request.",
+    "expected_direction": "compliant"
+  },
+  {
+    "id": "pii_redaction_demo",
+    "label": "GDPR — Customer Complaint (PII demo)",
+    "text": "Hello, my name is Maria Alvarez and I requested deletion of my account on your EU site over six months ago. You still have my email maria.alvarez@example.com and my phone number +34 612 345 678 on file, and I received a marketing email from you just last week. My address is Calle Mayor 12, Madrid, Spain. Please explain why my data has not been deleted.",
+    "expected_direction": "non-compliant"
+  }
+]

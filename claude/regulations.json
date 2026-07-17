@@ -1,0 +1,32 @@
+[
+  {
+    "id": "gdpr_art17",
+    "regulation": "GDPR Article 17 — Right to Erasure",
+    "jurisdiction": "EU",
+    "summary": "A data subject can request deletion of their personal data, and the controller must comply without undue delay when there is no overriding legal ground for continued processing (e.g. legal obligation, public interest, defense of legal claims). Silence or indefinite retention after a valid request, with no documented justification, is a violation."
+  },
+  {
+    "id": "gdpr_art44_49",
+    "regulation": "GDPR Chapter V (Articles 44-49) — International Transfers",
+    "jurisdiction": "EU",
+    "summary": "Personal data may only be transferred outside the EU/EEA to a country with an adequacy decision, or where appropriate safeguards are in place (e.g. Standard Contractual Clauses, Binding Corporate Rules). Transfers without an adequacy decision or safeguard are a violation."
+  },
+  {
+    "id": "gdpr_art7",
+    "regulation": "GDPR Article 7 — Conditions for Consent",
+    "jurisdiction": "EU",
+    "summary": "Consent must be freely given, specific, informed, and unambiguous, typically via a clear affirmative action (e.g. unchecked opt-in box). Pre-ticked boxes or bundled consent are not valid. Withdrawal must be as easy as giving consent."
+  },
+  {
+    "id": "ccpa_1798_120",
+    "regulation": "CCPA §1798.120 — Right to Opt-Out of Sale/Sharing",
+    "jurisdiction": "California, US",
+    "summary": "Consumers have the right to direct a business not to sell or share their personal information. A business must comply with a verified opt-out request; unreasonable delay in halting sale/sharing after a valid request is a violation."
+  },
+  {
+    "id": "ccpa_1798_115",
+    "regulation": "CCPA §1798.115 / §1798.135 — Disclosure of Sale or Sharing",
+    "jurisdiction": "California, US",
+    "summary": "A business must disclose in its privacy policy if it sells or shares personal information, and must provide a clear, conspicuous 'Do Not Sell or Share My Personal Information' mechanism. Undisclosed sharing with third parties for behavioral advertising, without this disclosure and opt-out, is a violation."
+  }
+]

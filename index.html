@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FinComp Check</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1e222b;
+    --border: #2a2f3a;
+    --text: #e6e8ec;
+    --muted: #9aa1ad;
+    --accent: #5b8cff;
+    --ok: #34c759;
+    --bad: #ff5c5c;
+    --warn: #ffb020;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); padding: 28px 16px 60px; }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 1.35rem; margin: 0 0 2px; letter-spacing: -0.01em; }
+  .subtitle { color: var(--muted); margin: 0 0 20px; font-size: 0.82rem; }
+
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+  textarea {
+    width: 100%; min-height: 90px; background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 0.9rem; resize: vertical;
+  }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+  button {
+    background: var(--accent); color: white; border: none; border-radius: 7px;
+    padding: 8px 14px; font-size: 0.85rem; cursor: pointer;
+  }
+  button.secondary { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 0.75rem; padding: 5px 10px; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .status { color: var(--muted); font-size: 0.8rem; margin-top: 6px; min-height: 1em; }
+  .status.error { color: var(--bad); }
+
+  /* Stepper */
+  .stepper { display: none; margin-bottom: 14px; }
+  .step { display: flex; gap: 10px; padding: 10px 4px; border-left: 2px solid var(--border); margin-left: 10px; padding-left: 16px; position: relative; }
+  .step:last-child { border-left-color: transparent; }
+  .step-dot {
+    position: absolute; left: -9px; top: 10px; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--panel-2); border: 2px solid var(--border); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 0.6rem;
+  }
+  .step.pending .step-dot { border-color: var(--border); }
+  .step.active .step-dot { border-color: var(--accent); animation: pulse 1s infinite ease-in-out; }
+  .step.done .step-dot { border-color: var(--ok); background: var(--ok); color: #061; }
+  .step.failed .step-dot { border-color: var(--bad); background: var(--bad); color: #fff; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .step-body { flex: 1; }
+  .step-title { font-size: 0.85rem; font-weight: 600; }
+  .step.pending .step-title { color: var(--muted); font-weight: 400; }
+  .step-summary { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+  .step-summary.error-text { color: var(--bad); }
+  .guard-note { font-size: 0.72rem; color: var(--muted); margin-top: 3px; cursor: help; }
+  .guard-note.pass::before { content: "🛡 "; }
+
+  details { margin-top: 4px; }
+  details summary { font-size: 0.75rem; color: var(--accent); cursor: pointer; user-select: none; }
+  details[open] summary { margin-bottom: 6px; }
+  .detail-box { font-size: 0.78rem; color: var(--muted); background: var(--panel-2); border-radius: 6px; padding: 8px; white-space: pre-wrap; word-break: break-word; }
+
+  /* Result */
+  .result-panel { display: none; }
+  .verdict-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .verdict-badge { padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.02em; }
+  .verdict-compliant { background: rgba(52,199,89,0.15); color: var(--ok); }
+  .verdict-non-compliant { background: rgba(255,92,92,0.15); color: var(--bad); }
+  .verdict-needs_review { background: rgba(255,176,32,0.15); color: var(--warn); }
+  .citation { font-size: 0.82rem; color: var(--muted); }
+  .citation b { color: var(--text); }
+  .corrected-note { font-size: 0.78rem; color: var(--warn); margin-top: 6px; }
+  .reasoning-text { font-size: 0.85rem; line-height: 1.5; margin-top: 8px; }
+
+  .source-list { list-style: none; margin: 4px 0 0; padding: 0; }
+  .source-list li { font-size: 0.78rem; color: var(--muted); padding: 4px 0; border-bottom: 1px solid var(--border); }
+  .source-list li:last-child { border-bottom: none; }
+  .source-list b { color: var(--text); }
+  .source-score { float: right; color: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; font-size: 0.7rem; text-transform: uppercase; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.75rem; }
+
+  .config-note { font-size: 0.72rem; color: var(--muted); margin-bottom: 16px; }
+  .config-note code { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>FinComp Check</h1>
+  <p class="subtitle">Redacted, retrieval-grounded, guardrailed compliance verdicts — GDPR &amp; CCPA.</p>
+  <p class="config-note">Endpoint: <code id="endpointDisplay"></code> — tokens set in <code>PUBLIC_TOKENS</code> at the top of the script.</p>
+
+  <div class="panel">
+    <textarea id="inputText" placeholder="Describe a data-handling practice or paste a complaint…"></textarea>
+    <div class="row">
+      <button id="checkBtn">Check</button>
+      <button class="secondary" id="clearBtn">Clear</button>
+      <button class="secondary" id="sampleBtn">Try a sample</button>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="stepper panel" id="stepper"></div>
+
+  <div class="panel result-panel" id="resultPanel">
+    <div class="verdict-row">
+      <span class="verdict-badge" id="verdictBadge"></span>
+      <span class="citation">cites <b id="citedRegulation"></b></span>
+    </div>
+    <div class="reasoning-text" id="reasoning"></div>
+    <div class="corrected-note" id="correctedNote" style="display:none;"></div>
+    <details>
+      <summary>Details — audit notes, sources, redaction, audit ID</summary>
+      <div class="detail-box">
+        <div><b>Audit notes:</b> <span id="auditNotes"></span></div>
+        <div style="margin-top:6px;"><b>Audit ID:</b> <span id="auditId" class="mono"></span></div>
+        <div style="margin-top:6px;"><b>Retrieved sources:</b></div>
+        <ul class="source-list" id="sourceList"></ul>
+        <div style="margin-top:6px;"><b>Redacted text sent to the model:</b></div>
+        <div id="redactedText" style="margin-top:2px;"></div>
+      </div>
+    </details>
+  </div>
+
+  <div class="panel">
+    <details>
+      <summary>History (this browser)</summary>
+      <table id="historyTable">
+        <thead><tr><th>Verdict</th><th>Regulation</th><th>Audit ID</th></tr></thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </details>
+  </div>
+</div>
+
+<script>
+// Each stage is its own deployed pipeline (fincomp-triage.pipe / fincomp-verdict.pipe /
+// fincomp-audit.pipe) so the UI can show real incremental progress instead of one long
+// wait. Update these after each `python3 test_pipeline.py <file>` run — publicToken
+// changes whenever a pipeline is restarted with a new project_id.
+const ENDPOINT_URL = "https://api.rocketride.ai/webhook";
+const PUBLIC_TOKENS = {
+  triage: "pk_d730b605e0c6546309f632326e4f1501",
+  verdict: "pk_1ff0b8f60d86aa4d1ce799d78cef0221",
+  audit: "pk_63921897c45422060cabefac7d291e9c"
+};
+document.getElementById("endpointDisplay").textContent = ENDPOINT_URL;
+
+// --- Prototype retrieval ("RAG-lite"): a hand-curated keyword index over a small
+// regulation set, scored against the input, instead of embedding the full closed set
+// into every prompt. Swap for real embeddings + a vector store to go beyond prototype. ---
+const REGULATIONS = [
+  { id: "gdpr_art17", title: "GDPR Article 17 — Right to Erasure", jurisdiction: "EU",
+    summary: "A data subject can request deletion of their personal data, and the controller must comply without undue delay when there is no overriding legal ground for continued processing. Silence or indefinite retention after a valid request, with no documented justification, is a violation.",
+    keywords: ["delete", "deletion", "erase", "erasure", "removed", "retain", "retention", "forgotten"] },
+  { id: "gdpr_art44_49", title: "GDPR Ch. V (Art. 44-49) — International Transfers", jurisdiction: "EU",
+    summary: "Personal data may only be transferred outside the EU/EEA to a country with an adequacy decision, or where appropriate safeguards are in place (e.g. Standard Contractual Clauses). Transfers without one are a violation.",
+    keywords: ["transfer", "overseas", "abroad", "adequacy", "cross-border", "international", "vendor", "processor"] },
+  { id: "gdpr_art7", title: "GDPR Article 7 — Conditions for Consent", jurisdiction: "EU",
+    summary: "Consent must be freely given, specific, informed, and unambiguous via clear affirmative action. Pre-ticked boxes or bundled consent are not valid. Withdrawal must be as easy as giving consent.",
+    keywords: ["consent", "opt-in", "checkbox", "pre-ticked", "pre-checked", "agree", "withdraw"] },
+  { id: "ccpa_1798_120", title: "CCPA §1798.120 — Right to Opt-Out of Sale/Sharing", jurisdiction: "California, US",
+    summary: "Consumers have the right to direct a business not to sell or share their personal information. Unreasonable delay in honoring a verified opt-out request is a violation.",
+    keywords: ["opt-out", "opt out", "do not sell", "stop selling", "stop sharing", "california"] },
+  { id: "ccpa_1798_115", title: "CCPA §1798.115/135 — Disclosure of Sale or Sharing", jurisdiction: "California, US",
+    summary: "A business must disclose in its privacy policy if it sells or shares personal information, and provide a clear 'Do Not Sell or Share My Personal Information' mechanism. Undisclosed sharing without this is a violation.",
+    keywords: ["disclose", "disclosure", "privacy policy", "advertising", "third-party", "third party", "sell", "share"] }
+];
+
+function retrieve(text, topN = 2) {
+  const lower = text.toLowerCase();
+  const scored = REGULATIONS.map((reg) => {
+    let score = reg.keywords.reduce((sum, kw) => sum + (lower.includes(kw) ? 1 : 0), 0);
+    if (reg.jurisdiction === "EU" && /\beu\b|europe|gdpr/.test(lower)) score += 0.5;
+    if (reg.jurisdiction.startsWith("California") && /california|ccpa/.test(lower)) score += 0.5;
+    return { ...reg, score };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, topN).filter((r, i) => i === 0 || r.score > 0);
+}
+
+function formatRegulationsBlock(regs) {
+  return regs.map((r) => `- ${r.id} | ${r.title} | ${r.jurisdiction} | ${r.summary}`).join("\n");
+}
+
+// --- Guardrail descriptions shown in the stepper (reaching a stage's result means its
+// guardrails already passed — a block would have surfaced as a pipeline error instead). ---
+const GUARD_DESC = "Input check: blocks prompt-injection & unredacted PII before the model runs. Output check: confirms valid JSON, a recognized citation, no leaked PII.";
+
+const scenarios = [
+  { label: "GDPR — Customer complaint (PII demo)", text: "Hello, my name is Maria Alvarez and I requested deletion of my account on your EU site over six months ago. You still have my email maria.alvarez@example.com and my phone number +34 612 345 678 on file, and I received a marketing email from you just last week. My address is Calle Mayor 12, Madrid, Spain. Please explain why my data has not been deleted." },
+  { label: "CCPA — Slow opt-out response", text: "We are a California-based retailer. A California resident submitted a 'Do Not Sell My Personal Information' request. It has now been 20 days and we have not yet stopped sharing their data with our ad-tech partners or confirmed the request was processed." },
+  { label: "GDPR — Compliant consent flow", text: "We are an EU-based newsletter platform. We collect subscriber emails only after an explicit opt-in checkbox that is unchecked by default, we state clearly what the email will be used for, and we delete it within 30 days of an unsubscribe or deletion request." }
+];
+let sampleIndex = 0;
+document.getElementById("sampleBtn").addEventListener("click", () => {
+  document.getElementById("inputText").value = scenarios[sampleIndex % scenarios.length].text;
+  sampleIndex++;
+});
+
+document.getElementById("clearBtn").addEventListener("click", () => {
+  document.getElementById("inputText").value = "";
+  document.getElementById("stepper").style.display = "none";
+  document.getElementById("resultPanel").style.display = "none";
+  document.getElementById("status").textContent = "";
+});
+
+function verdictClass(v) {
+  if (v === "compliant") return "verdict-compliant";
+  if (v === "non-compliant") return "verdict-non-compliant";
+  return "verdict-needs_review";
+}
+
+// --- History (client-side; see PROJECT_DESCRIPTION.md for why the pipeline itself
+// can't be queried back for this right now) ---
+const HISTORY_KEY = "fincomp_history";
+function loadHistory() { try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); } catch { return []; } }
+function saveToHistory(r) {
+  const h = loadHistory();
+  h.push({ audit_id: r.audit_id, cited_regulation: r.cited_regulation, final_verdict: r.final_verdict });
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(-50)));
+  renderHistory();
+}
+function renderHistory() {
+  const body = document.getElementById("historyBody");
+  const h = loadHistory();
+  body.innerHTML = h.length === 0
+    ? '<tr><td colspan="3" class="status">No history yet.</td></tr>'
+    : h.slice().reverse().map((r) => `<tr><td>${r.final_verdict || ""}</td><td>${r.cited_regulation || ""}</td><td class="mono">${r.audit_id || ""}</td></tr>`).join("");
+}
+renderHistory();
+
+function dedupeEcho(s) {
+  if (typeof s !== "string" || s.length % 2 !== 0) return s;
+  const half = s.length / 2;
+  return s.slice(0, half) === s.slice(half) ? s.slice(0, half) : s;
+}
+
+// --- Stepper rendering ---
+const STAGES = [
+  { key: "retrieve", label: "Redact & retrieve sources" },
+  { key: "triage", label: "Triage" },
+  { key: "verdict", label: "Verdict" },
+  { key: "audit", label: "Audit" }
+];
+function renderStepper() {
+  const el = document.getElementById("stepper");
+  el.style.display = "block";
+  el.innerHTML = STAGES.map((s) => `
+    <div class="step pending" id="step-${s.key}">
+      <div class="step-dot"></div>
+      <div class="step-body">
+        <div class="step-title">${s.label}</div>
+        <div class="step-summary" id="step-summary-${s.key}"></div>
+      </div>
+    </div>`).join("");
+}
+function setStep(key, state, summaryHtml, showGuard) {
+  const step = document.getElementById(`step-${key}`);
+  step.className = `step ${state}`;
+  const summary = document.getElementById(`step-summary-${key}`);
+  summary.innerHTML = (summaryHtml || "") + (showGuard ? `<div class="guard-note pass" title="${GUARD_DESC}">Guardrails passed</div>` : "");
+}
+
+async function callStage(publicToken, payload) {
+  const res = await fetch(ENDPOINT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain", "Authorization": "Bearer " + publicToken },
+    body: payload
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  const body = data?.data?.objects?.body;
+  if (!body) throw new Error("Unexpected response shape");
+  if (body.error) throw new Error(body.error.message);
+  const answers = Array.isArray(body.answers) ? body.answers : [body.answers ?? body.answer ?? body];
+  const raw = answers[answers.length - 1];
+  return typeof raw === "string" ? JSON.parse(raw) : raw;
+}
+
+async function checkCompliance() {
+  const text = document.getElementById("inputText").value.trim();
+  const status = document.getElementById("status");
+  const checkBtn = document.getElementById("checkBtn");
+  if (!text) {
+    status.textContent = "Enter a description first.";
+    status.className = "status error";
+    return;
+  }
+
+  status.textContent = "";
+  status.className = "status";
+  checkBtn.disabled = true;
+  document.getElementById("resultPanel").style.display = "none";
+  renderStepper();
+
+  try {
+    // Stage 0: client-side retrieval
+    setStep("retrieve", "active", "Searching regulation index…");
+    const sources = retrieve(text);
+    const regBlock = formatRegulationsBlock(sources);
+    setStep("retrieve", "done", `Matched ${sources.length} source${sources.length === 1 ? "" : "s"}: ${sources.map((s) => s.id).join(", ")}`);
+
+    // Stage 1: Triage
+    setStep("triage", "active", "Redacting PII, extracting case details…");
+    const triage = await callStage(PUBLIC_TOKENS.triage,
+      `[USER_DESCRIPTION]\n${text}\n[END_USER_DESCRIPTION]\n\n[RETRIEVED_REGULATIONS]\n${regBlock}\n[END_RETRIEVED_REGULATIONS]`);
+    setStep("triage", "done", `${triage.jurisdiction} · ${triage.practice}`, true);
+
+    // Stage 2: Verdict
+    setStep("verdict", "active", "Reasoning over the matched regulation…");
+    const verdict = await callStage(PUBLIC_TOKENS.verdict,
+      `[TRIAGE]\n${JSON.stringify(triage)}\n[END_TRIAGE]\n\n[RETRIEVED_REGULATIONS]\n${regBlock}\n[END_RETRIEVED_REGULATIONS]`);
+    setStep("verdict", "done", `${verdict.verdict} (${verdict.confidence} confidence)`, true);
+
+    // Stage 3: Audit
+    setStep("audit", "active", "Independently re-checking the verdict…");
+    const audit = await callStage(PUBLIC_TOKENS.audit,
+      `[VERDICT]\n${JSON.stringify(verdict)}\n[END_VERDICT]\n\n[RETRIEVED_REGULATIONS]\n${regBlock}\n[END_RETRIEVED_REGULATIONS]`);
+    setStep("audit", "done", audit.audit_passed ? "Confirmed" : "Corrected", true);
+
+    // Final result
+    const badge = document.getElementById("verdictBadge");
+    badge.textContent = audit.final_verdict || "unknown";
+    badge.className = "verdict-badge " + verdictClass(audit.final_verdict);
+    document.getElementById("citedRegulation").textContent = audit.cited_regulation || verdict.cited_regulation || "—";
+    document.getElementById("reasoning").textContent = verdict.reasoning || "—";
+    document.getElementById("auditNotes").textContent = audit.audit_notes || "—";
+    document.getElementById("auditId").textContent = audit.audit_id || "—";
+    document.getElementById("redactedText").textContent = dedupeEcho(triage.redacted_text_seen) || "—";
+    document.getElementById("sourceList").innerHTML = sources.map((s) =>
+      `<li><b>${s.id}</b> — ${s.title}<span class="source-score">match: ${s.score.toFixed(1)}</span></li>`).join("");
+
+    const correctedNote = document.getElementById("correctedNote");
+    if (audit.audit_passed === false) {
+      correctedNote.style.display = "block";
+      correctedNote.textContent = `Audit corrected the initial verdict (${verdict.verdict} → ${audit.final_verdict}).`;
+    } else {
+      correctedNote.style.display = "none";
+    }
+
+    document.getElementById("resultPanel").style.display = "block";
+    saveToHistory({ ...audit, cited_regulation: audit.cited_regulation || verdict.cited_regulation });
+  } catch (err) {
+    const activeStep = STAGES.map((s) => s.key).find((k) => document.getElementById(`step-${k}`).className.includes("active"));
+    if (activeStep) setStep(activeStep, "failed", `<span class="error-text">${err.message}</span>`);
+    status.textContent = "Stopped: " + err.message;
+    status.className = "status error";
+  } finally {
+    checkBtn.disabled = false;
+  }
+}
+
+document.getElementById("checkBtn").addEventListener("click", checkCompliance);
+</script>
+</body>
+</html>

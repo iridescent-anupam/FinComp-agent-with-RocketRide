@@ -1,0 +1,134 @@
+{
+  "project_id": "66897336-08ca-46c7-87df-e07050a37edd",
+  "source": "webhook_1",
+  "components": [
+    {
+      "id": "webhook_1",
+      "provider": "webhook",
+      "name": "Webhook",
+      "config": {
+        "hideForm": true,
+        "mode": "Source",
+        "parameters": {},
+        "type": "webhook"
+      },
+      "ui": { "position": { "x": -10, "y": -190 }, "nodeType": "default", "formDataValid": true }
+    },
+    {
+      "id": "ner_1",
+      "provider": "ner",
+      "name": "Named Entity Recognition",
+      "config": {
+        "profile": "bertLarge",
+        "bertLarge": { "aggregation_strategy": "simple", "min_confidence": 0.85, "store_in_metadata": true }
+      },
+      "ui": { "position": { "x": 230, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "text", "from": "webhook_1" } ]
+    },
+    {
+      "id": "anonymize_1",
+      "provider": "anonymize_text",
+      "name": "Anonymize",
+      "config": {
+        "profile": "glinerPIILarge",
+        "glinerPIILarge": { "anonymizeChar": "█" }
+      },
+      "ui": { "position": { "x": 470, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "text", "from": "ner_1" } ]
+    },
+    {
+      "id": "question_1",
+      "provider": "question",
+      "name": "Question",
+      "config": { "type": "question" },
+      "ui": { "position": { "x": 710, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "text", "from": "anonymize_1" } ]
+    },
+    {
+      "id": "prompt_1",
+      "provider": "prompt",
+      "name": "Triage Prompt",
+      "config": {
+        "instructions": [
+          "You are Stage 1 of 3 (Triage) in a data-privacy compliance pipeline. You will NOT see the later Verdict or Audit stages — do only triage extraction.",
+          "The input below has already been redacted of PII by an upstream step (names/emails/phones/etc. appear as block characters, e.g. █████). Do not attempt to reconstruct redacted values.",
+          "The input contains two marked sections: [USER_DESCRIPTION] the redacted data-handling description, and [RETRIEVED_REGULATIONS] a short list of regulation entries a retrieval step matched to this description — this is NOT a fixed list, it is whatever was retrieved for this specific case, and it is your ONLY valid source for regulation_guess.",
+          "Extract: practice (short description of the data-handling practice at issue), data_type (kind of personal data involved), jurisdiction (EU, California US, or unclear), regulation_guess (must be exactly one id from [RETRIEVED_REGULATIONS] — never invent one or use one not listed there), and risk_level (low, medium, or high).",
+          "Output ONLY a single JSON object, no prose, no markdown code fences: {\"practice\": string, \"data_type\": string, \"jurisdiction\": string, \"regulation_guess\": string, \"risk_level\": string, \"redacted_text_seen\": string (echo the [USER_DESCRIPTION] text verbatim, once, so the caller can verify redaction happened)}"
+        ]
+      },
+      "ui": { "position": { "x": 950, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "questions", "from": "question_1" } ]
+    },
+    {
+      "id": "guardrails_input_1",
+      "provider": "guardrails",
+      "name": "Guardrails — input safety",
+      "config": {
+        "profile": "custom",
+        "custom": {
+          "policy_mode": "block",
+          "enable_prompt_injection": true,
+          "enable_content_safety": false,
+          "enable_pii_detection": true,
+          "enable_hallucination_check": false,
+          "max_input_length": 8000,
+          "max_tokens_estimate": 0,
+          "expected_format": "",
+          "blocked_topics": [],
+          "allowed_topics": []
+        }
+      },
+      "ui": { "position": { "x": 1190, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "questions", "from": "prompt_1" } ]
+    },
+    {
+      "id": "llm_openai_1",
+      "provider": "llm_openai",
+      "name": "OpenAI",
+      "config": {
+        "profile": "openai-4o-mini",
+        "openai-4o-mini": { "apikey": "${ROCKETRIDE_OPENAI_KEY}" }
+      },
+      "ui": { "position": { "x": 1430, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "questions", "from": "guardrails_input_1" } ]
+    },
+    {
+      "id": "guardrails_output_1",
+      "provider": "guardrails",
+      "name": "Guardrails — output validity",
+      "config": {
+        "profile": "custom",
+        "custom": {
+          "policy_mode": "block",
+          "enable_prompt_injection": false,
+          "enable_content_safety": false,
+          "enable_pii_detection": true,
+          "enable_hallucination_check": false,
+          "max_input_length": 0,
+          "max_tokens_estimate": 400,
+          "expected_format": "json",
+          "blocked_topics": [],
+          "allowed_topics": [
+            "gdpr_art17", "gdpr_art44_49", "gdpr_art7", "ccpa_1798_120", "ccpa_1798_115"
+          ]
+        }
+      },
+      "ui": { "position": { "x": 1670, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "answers", "from": "llm_openai_1" } ]
+    },
+    {
+      "id": "response_answers_1",
+      "provider": "response_answers",
+      "name": "Return Answers",
+      "config": { "laneName": "answers" },
+      "ui": { "position": { "x": 1910, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "answers", "from": "guardrails_output_1" } ]
+    }
+  ],
+  "version": 1,
+  "docRevision": 1,
+  "isLocked": false,
+  "snapToGrid": true,
+  "snapGridSize": [10, 10]
+}

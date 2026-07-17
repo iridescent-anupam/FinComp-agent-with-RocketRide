@@ -1,0 +1,134 @@
+{
+  "project_id": "6a470728-d1e6-42bf-a6f5-f67da920e11e",
+  "source": "webhook_1",
+  "components": [
+    {
+      "id": "webhook_1",
+      "provider": "webhook",
+      "name": "Webhook",
+      "config": {
+        "hideForm": true,
+        "mode": "Source",
+        "parameters": {},
+        "type": "webhook"
+      },
+      "ui": { "position": { "x": -10, "y": -190 }, "nodeType": "default", "formDataValid": true }
+    },
+    {
+      "id": "ner_1",
+      "provider": "ner",
+      "name": "Named Entity Recognition",
+      "config": {
+        "profile": "bertLarge",
+        "bertLarge": { "aggregation_strategy": "simple", "min_confidence": 0.85, "store_in_metadata": true }
+      },
+      "ui": { "position": { "x": 230, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "text", "from": "webhook_1" } ]
+    },
+    {
+      "id": "anonymize_1",
+      "provider": "anonymize_text",
+      "name": "Anonymize",
+      "config": {
+        "profile": "glinerPIILarge",
+        "glinerPIILarge": { "anonymizeChar": "█" }
+      },
+      "ui": { "position": { "x": 470, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "text", "from": "ner_1" } ]
+    },
+    {
+      "id": "question_1",
+      "provider": "question",
+      "name": "Question",
+      "config": { "type": "question" },
+      "ui": { "position": { "x": 710, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "text", "from": "anonymize_1" } ]
+    },
+    {
+      "id": "prompt_1",
+      "provider": "prompt",
+      "name": "Verdict Prompt",
+      "config": {
+        "instructions": [
+          "You are Stage 2 of 3 (Verdict) in a data-privacy compliance pipeline. You did not perform the Triage step and will not see the Audit step — reason independently from what's given below, do not assume anything not stated.",
+          "The input contains two marked sections: [TRIAGE] a JSON object produced by the Triage stage, and [RETRIEVED_REGULATIONS] the regulation entries a retrieval step matched to this case — your ONLY valid source of regulatory text. Never use outside knowledge about GDPR/CCPA beyond what's in [RETRIEVED_REGULATIONS].",
+          "Find the entry in [RETRIEVED_REGULATIONS] matching the [TRIAGE] object's regulation_guess id. Reason ONLY from that entry's summary text and the facts in [TRIAGE] to a verdict: exactly one of compliant, non-compliant, or needs_review. If regulation_guess doesn't match any entry in [RETRIEVED_REGULATIONS], set verdict to needs_review and say why in reasoning.",
+          "Output ONLY a single JSON object, no prose, no markdown code fences: {\"verdict\": string, \"reasoning\": string (under 100 words, cites only facts present in the matched entry's summary), \"cited_regulation\": string (the regulation id used), \"confidence\": string (low, medium, or high)}"
+        ]
+      },
+      "ui": { "position": { "x": 950, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "questions", "from": "question_1" } ]
+    },
+    {
+      "id": "guardrails_input_1",
+      "provider": "guardrails",
+      "name": "Guardrails — input safety",
+      "config": {
+        "profile": "custom",
+        "custom": {
+          "policy_mode": "block",
+          "enable_prompt_injection": true,
+          "enable_content_safety": false,
+          "enable_pii_detection": true,
+          "enable_hallucination_check": false,
+          "max_input_length": 8000,
+          "max_tokens_estimate": 0,
+          "expected_format": "",
+          "blocked_topics": [],
+          "allowed_topics": []
+        }
+      },
+      "ui": { "position": { "x": 1190, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "questions", "from": "prompt_1" } ]
+    },
+    {
+      "id": "llm_openai_1",
+      "provider": "llm_openai",
+      "name": "OpenAI",
+      "config": {
+        "profile": "openai-4o-mini",
+        "openai-4o-mini": { "apikey": "${ROCKETRIDE_OPENAI_KEY}" }
+      },
+      "ui": { "position": { "x": 1430, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "questions", "from": "guardrails_input_1" } ]
+    },
+    {
+      "id": "guardrails_output_1",
+      "provider": "guardrails",
+      "name": "Guardrails — output validity",
+      "config": {
+        "profile": "custom",
+        "custom": {
+          "policy_mode": "block",
+          "enable_prompt_injection": false,
+          "enable_content_safety": false,
+          "enable_pii_detection": true,
+          "enable_hallucination_check": false,
+          "max_input_length": 0,
+          "max_tokens_estimate": 400,
+          "expected_format": "json",
+          "blocked_topics": [],
+          "allowed_topics": [
+            "gdpr_art17", "gdpr_art44_49", "gdpr_art7", "ccpa_1798_120", "ccpa_1798_115",
+            "compliant", "non-compliant", "needs_review"
+          ]
+        }
+      },
+      "ui": { "position": { "x": 1670, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "answers", "from": "llm_openai_1" } ]
+    },
+    {
+      "id": "response_answers_1",
+      "provider": "response_answers",
+      "name": "Return Answers",
+      "config": { "laneName": "answers" },
+      "ui": { "position": { "x": 1910, "y": -190 }, "nodeType": "default", "formDataValid": true },
+      "input": [ { "lane": "answers", "from": "guardrails_output_1" } ]
+    }
+  ],
+  "version": 1,
+  "docRevision": 1,
+  "isLocked": false,
+  "snapToGrid": true,
+  "snapGridSize": [10, 10]
+}
