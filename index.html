@@ -287,30 +287,34 @@
     margin-bottom: 2px;
   }
 
-  /* Sample Cards */
-  .samples-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-    margin-top: 16px;
-  }
-
-  .sample-card {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255,255,255,0.04);
-    border-radius: 10px;
-    padding: 12px;
-    cursor: pointer;
-    text-align: left;
+  /* Sample Pills */
+  .samples-row {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
   }
 
-  .sample-card:hover {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(99, 102, 241, 0.2);
-    transform: translateX(2px);
+  .sample-pill {
+    background: rgba(99, 102, 241, 0.05);
+    border: 1px solid rgba(99, 102, 241, 0.15);
+    border-radius: 99px;
+    padding: 6px 14px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #a5b4fc;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .sample-pill:hover {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.3);
+    color: #fff;
+    transform: translateY(-1px);
   }
 
   .sample-label {
@@ -665,6 +669,7 @@
           <div class="status" id="status">Ready</div>
         </div>
         
+        <div class="samples-row" id="samplesGrid"></div>
         <textarea id="inputText" placeholder="Paste data practice description or customer privacy complaint here..."></textarea>
         
         <div class="action-row">
@@ -703,12 +708,6 @@
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- Test Cases Grid -->
-      <div class="panel">
-        <h3 class="panel-title" style="margin-bottom: 12px;">Evaluation Templates</h3>
-        <div class="samples-grid" id="samplesGrid"></div>
       </div>
     </div>
 
@@ -837,20 +836,18 @@ const scenarios = [
   { label: "GDPR — Compliant consent flow", desc: "Tests valid newsletter consent configuration validation.", text: "We are an EU-based newsletter platform. We collect subscriber emails only after an explicit opt-in checkbox that is unchecked by default, we state clearly what the email will be used for, and we delete it within 30 days of an unsubscribe or deletion request." }
 ];
 
-// Dynamically render sample cards
+// Dynamically render sample pills
 const samplesGrid = document.getElementById("samplesGrid");
 scenarios.forEach((s, idx) => {
-  const card = document.createElement("div");
-  card.className = "sample-card";
-  card.innerHTML = `
-    <div class="sample-label">${s.label}</div>
-    <div class="sample-desc">${s.desc}</div>
-  `;
-  card.addEventListener("click", () => {
+  const pill = document.createElement("div");
+  pill.className = "sample-pill";
+  pill.innerHTML = `📋 ${s.label.split(" — ")[0]}`;
+  pill.title = s.desc;
+  pill.addEventListener("click", () => {
     document.getElementById("inputText").value = s.text;
     document.getElementById("inputText").focus();
   });
-  samplesGrid.appendChild(card);
+  samplesGrid.appendChild(pill);
 });
 
 let sampleIndex = 0;

@@ -35,7 +35,10 @@ async def forward_request(project_id, source, payload):
                     key, val = line.split('=', 1)
                     os.environ[key.strip()] = val.strip()
 
-    client = RocketRideClient(LOCAL_URI, auth=LOCAL_APIKEY)
+    uri = os.environ.get('ROCKETRIDE_URI', LOCAL_URI)
+    apikey = os.environ.get('ROCKETRIDE_APIKEY', LOCAL_APIKEY)
+
+    client = RocketRideClient(uri, auth=apikey)
     await client.connect()
     try:
         # Get active task token for this project
