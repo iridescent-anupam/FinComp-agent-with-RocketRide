@@ -937,7 +937,16 @@ async function callStage(publicToken, payload) {
   if (body.error) throw new Error(body.error.message);
   const answers = Array.isArray(body.answers) ? body.answers : [body.answers ?? body.answer ?? body];
   const raw = answers[answers.length - 1];
-  return typeof raw === "string" ? JSON.parse(raw) : raw;
+  let parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+  if (typeof parsed === "string") {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch (e) {
+      console.warn("Failed second JSON parse:", e);
+    }
+  }
+  console.log(`Stage (${publicToken.substring(0, 8)}...) parsed result:`, parsed);
+  return parsed;
 }
 
 async function checkCompliance() {

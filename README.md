@@ -1,1 +1,3 @@
-# FinComp-agent-with-RocketRide
+# FinComp Check
+
+A data-privacy compliance checker built on the RocketRide AI orchestration stack. Given a raw data practice description or customer privacy complaint as input, it executes a multi-stage pipeline: (1) redacting PII, (2) retrieving matching regulatory articles (RAG), (3) reasoning compliance status, and (4) auditing the verdict to output a validated compliance report (compliant, non-compliant, or needs_review).
