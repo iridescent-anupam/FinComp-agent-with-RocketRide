@@ -3,142 +3,762 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>FinComp Check</title>
+<title>FinComp Check — Responsible AI Compliance Checker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0f1115;
-    --panel: #171a21;
-    --panel-2: #1e222b;
-    --border: #2a2f3a;
-    --text: #e6e8ec;
-    --muted: #9aa1ad;
-    --accent: #5b8cff;
-    --ok: #34c759;
-    --bad: #ff5c5c;
-    --warn: #ffb020;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --bg: #0b0d13;
+    --bg-glow: radial-gradient(circle at 50% -20%, #1e1b4b 0%, #0b0d13 60%);
+    --panel: rgba(17, 20, 28, 0.7);
+    --panel-border: rgba(255, 255, 255, 0.06);
+    --panel-hover: rgba(25, 29, 41, 0.85);
+    --panel-active: #191d29;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-focus: rgba(99, 102, 241, 0.4);
+    --text: #f3f4f6;
+    --muted: #9ca3af;
+    --accent: #6366f1;
+    --accent-glow: rgba(99, 102, 241, 0.15);
+    --accent-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    --ok: #10b981;
+    --ok-bg: rgba(16, 185, 129, 0.1);
+    --bad: #ef4444;
+    --bad-bg: rgba(239, 68, 68, 0.1);
+    --warn: #f59e0b;
+    --warn-bg: rgba(245, 158, 11, 0.1);
+    
+    --shadow-sm: 0 2px 8px -2px rgba(0,0,0,0.5);
+    --shadow-md: 0 8px 24px -4px rgba(0,0,0,0.6);
+    --shadow-lg: 0 16px 40px -8px rgba(0,0,0,0.7);
+    
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); padding: 28px 16px 60px; }
-  .wrap { max-width: 720px; margin: 0 auto; }
-  h1 { font-size: 1.35rem; margin: 0 0 2px; letter-spacing: -0.01em; }
-  .subtitle { color: var(--muted); margin: 0 0 20px; font-size: 0.82rem; }
+  
+  * { box-sizing: border-box; transition: all 0.2s ease-out; }
+  
+  body { 
+    margin: 0; 
+    background: var(--bg); 
+    background-image: var(--bg-glow);
+    color: var(--text); 
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
 
-  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+  .app-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    flex-grow: 1;
+  }
+
+  /* Header Section */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 20px;
+    margin-bottom: 8px;
+  }
+  
+  .logo-area h1 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #fff 30%, #a5b4fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .logo-area p {
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: 0.88rem;
+  }
+
+  .badge-tunnel {
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    color: #a5b4fc;
+    font-size: 0.75rem;
+    padding: 6px 12px;
+    border-radius: 99px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .badge-tunnel::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #818cf8;
+    box-shadow: 0 0 8px #818cf8;
+    display: inline-block;
+    animation: pulse 1.5s infinite;
+  }
+
+  /* Main Layout */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  @media (max-width: 900px) {
+    .main-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Glassmorphism Panels */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    padding: 24px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .panel-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #fff;
+  }
+
+  /* Form and Input Elements */
   textarea {
-    width: 100%; min-height: 90px; background: var(--panel-2); color: var(--text);
-    border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 0.9rem; resize: vertical;
+    width: 100%;
+    min-height: 120px;
+    background: rgba(13, 16, 23, 0.8);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    resize: vertical;
+    outline: none;
   }
-  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+
+  textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  .action-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .btn-group {
+    display: flex;
+    gap: 8px;
+  }
+
   button {
-    background: var(--accent); color: white; border: none; border-radius: 7px;
-    padding: 8px 14px; font-size: 0.85rem; cursor: pointer;
+    background: var(--accent-gradient);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
-  button.secondary { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 0.75rem; padding: 5px 10px; }
-  button:disabled { opacity: 0.5; cursor: not-allowed; }
-  .status { color: var(--muted); font-size: 0.8rem; margin-top: 6px; min-height: 1em; }
-  .status.error { color: var(--bad); }
+
+  button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--accent-glow);
+  }
+
+  button:active {
+    transform: translateY(0);
+  }
+
+  button.secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  button.secondary:hover {
+    border-color: rgba(255,255,255,0.2);
+    color: #fff;
+    box-shadow: none;
+  }
+
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  .status {
+    color: var(--muted);
+    font-size: 0.85rem;
+    min-height: 1.2em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status.error {
+    color: var(--bad);
+  }
+
+  /* Guide / Instructions Panel */
+  .guide-box {
+    margin-top: 16px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .guide-title {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #a5b4fc;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .guide-steps {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .guide-step {
+    background: rgba(0,0,0,0.15);
+    padding: 10px;
+    border-radius: 8px;
+    border-left: 2px solid var(--border);
+  }
+
+  .guide-step b {
+    color: #fff;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  /* Sample Cards */
+  .samples-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .sample-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 10px;
+    padding: 12px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .sample-card:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(99, 102, 241, 0.2);
+    transform: translateX(2px);
+  }
+
+  .sample-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .sample-desc {
+    font-size: 0.75rem;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
   /* Stepper */
-  .stepper { display: none; margin-bottom: 14px; }
-  .step { display: flex; gap: 10px; padding: 10px 4px; border-left: 2px solid var(--border); margin-left: 10px; padding-left: 16px; position: relative; }
-  .step:last-child { border-left-color: transparent; }
-  .step-dot {
-    position: absolute; left: -9px; top: 10px; width: 16px; height: 16px; border-radius: 50%;
-    background: var(--panel-2); border: 2px solid var(--border); flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center; font-size: 0.6rem;
+  .stepper {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
   }
-  .step.pending .step-dot { border-color: var(--border); }
-  .step.active .step-dot { border-color: var(--accent); animation: pulse 1s infinite ease-in-out; }
-  .step.done .step-dot { border-color: var(--ok); background: var(--ok); color: #061; }
-  .step.failed .step-dot { border-color: var(--bad); background: var(--bad); color: #fff; }
-  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-  .step-body { flex: 1; }
-  .step-title { font-size: 0.85rem; font-weight: 600; }
-  .step.pending .step-title { color: var(--muted); font-weight: 400; }
-  .step-summary { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
-  .step-summary.error-text { color: var(--bad); }
-  .guard-note { font-size: 0.72rem; color: var(--muted); margin-top: 3px; cursor: help; }
-  .guard-note.pass::before { content: "🛡 "; }
 
-  details { margin-top: 4px; }
-  details summary { font-size: 0.75rem; color: var(--accent); cursor: pointer; user-select: none; }
-  details[open] summary { margin-bottom: 6px; }
-  .detail-box { font-size: 0.78rem; color: var(--muted); background: var(--panel-2); border-radius: 6px; padding: 8px; white-space: pre-wrap; word-break: break-word; }
+  .step {
+    display: flex;
+    gap: 16px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.01);
+    border: 1px solid rgba(255,255,255,0.03);
+    position: relative;
+  }
+  
+  .step-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    margin-top: 1px;
+  }
 
-  /* Result */
-  .result-panel { display: none; }
-  .verdict-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .verdict-badge { padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.02em; }
-  .verdict-compliant { background: rgba(52,199,89,0.15); color: var(--ok); }
-  .verdict-non-compliant { background: rgba(255,92,92,0.15); color: var(--bad); }
-  .verdict-needs_review { background: rgba(255,176,32,0.15); color: var(--warn); }
-  .citation { font-size: 0.82rem; color: var(--muted); }
-  .citation b { color: var(--text); }
-  .corrected-note { font-size: 0.78rem; color: var(--warn); margin-top: 6px; }
-  .reasoning-text { font-size: 0.85rem; line-height: 1.5; margin-top: 8px; }
+  .step.active {
+    background: rgba(99, 102, 241, 0.03);
+    border-color: rgba(99, 102, 241, 0.15);
+  }
 
-  .source-list { list-style: none; margin: 4px 0 0; padding: 0; }
-  .source-list li { font-size: 0.78rem; color: var(--muted); padding: 4px 0; border-bottom: 1px solid var(--border); }
-  .source-list li:last-child { border-bottom: none; }
-  .source-list b { color: var(--text); }
-  .source-score { float: right; color: var(--accent); }
+  .step.active .step-dot {
+    border-color: var(--accent);
+    box-shadow: 0 0 10px var(--accent-glow);
+    background: var(--accent);
+    color: white;
+  }
 
-  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
-  th { color: var(--muted); font-weight: 500; font-size: 0.7rem; text-transform: uppercase; }
-  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.75rem; }
+  .step.done .step-dot {
+    border-color: var(--ok);
+    background: var(--ok);
+    color: #0c1c17;
+  }
 
-  .config-note { font-size: 0.72rem; color: var(--muted); margin-bottom: 16px; }
-  .config-note code { color: var(--accent); }
+  .step.failed .step-dot {
+    border-color: var(--bad);
+    background: var(--bad);
+    color: #fff;
+  }
+
+  .step-body {
+    flex: 1;
+  }
+
+  .step-title {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .step.pending .step-title {
+    color: var(--muted);
+  }
+
+  .step-summary {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  .step-summary.error-text {
+    color: var(--bad);
+  }
+
+  .guard-note {
+    font-size: 0.72rem;
+    color: #818cf8;
+    background: rgba(99,102,241,0.1);
+    border: 1px solid rgba(99,102,241,0.2);
+    border-radius: 4px;
+    padding: 2px 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    cursor: help;
+  }
+
+  .guard-note.pass::before {
+    content: "🛡️";
+  }
+
+  /* Result Panel */
+  .result-panel {
+    display: none;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: var(--shadow-lg);
+    animation: slideUp 0.3s ease-out;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .verdict-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 14px;
+  }
+
+  .verdict-badge {
+    padding: 6px 14px;
+    border-radius: 99px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .verdict-compliant { background: var(--ok-bg); color: var(--ok); border: 1px solid rgba(16,185,129,0.2); }
+  .verdict-non-compliant { background: var(--bad-bg); color: var(--bad); border: 1px solid rgba(239,68,68,0.2); }
+  .verdict-needs_review { background: var(--warn-bg); color: var(--warn); border: 1px solid rgba(245,158,11,0.2); }
+
+  .citation {
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+
+  .citation b {
+    color: #fff;
+    background: rgba(255,255,255,0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+  }
+
+  .reasoning-text {
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: #e5e7eb;
+    background: rgba(0,0,0,0.1);
+    padding: 14px;
+    border-radius: 8px;
+    border-left: 3px solid var(--accent);
+  }
+
+  .corrected-note {
+    font-size: 0.8rem;
+    color: var(--warn);
+    margin-top: 12px;
+    background: var(--warn-bg);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 8px;
+    padding: 10px 14px;
+  }
+
+  /* Details Panel Section */
+  details {
+    margin-top: 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  details summary {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #a5b4fc;
+    cursor: pointer;
+    user-select: none;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.02);
+  }
+
+  details summary:hover {
+    background: rgba(255,255,255,0.04);
+  }
+
+  .detail-box {
+    font-size: 0.8rem;
+    color: var(--muted);
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid var(--border);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .detail-item b {
+    color: #fff;
+  }
+
+  .source-list {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+  }
+
+  .source-list li {
+    font-size: 0.78rem;
+    color: var(--muted);
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .source-list li:last-child {
+    border-bottom: none;
+  }
+
+  .source-list b {
+    color: #fff;
+  }
+
+  .source-score {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .redacted-box {
+    background: rgba(13, 16, 23, 0.9);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: #818cf8;
+    line-height: 1.5;
+  }
+
+  /* History Table */
+  .history-panel {
+    margin-top: 24px;
+  }
+
+  .history-panel details {
+    border-radius: 12px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  th {
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: rgba(0,0,0,0.1);
+  }
+
+  td {
+    color: #e5e7eb;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  .mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: #818cf8;
+  }
+
+  .endpoint-indicator {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(0,0,0,0.2);
+    padding: 6px 12px;
+    border-radius: 6px;
+    display: inline-block;
+    border: 1px solid var(--border);
+  }
+
+  .endpoint-indicator code {
+    color: var(--accent);
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.5; }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>FinComp Check</h1>
-  <p class="subtitle">Redacted, retrieval-grounded, guardrailed compliance verdicts — GDPR &amp; CCPA.</p>
-  <p class="config-note">Endpoint: <code id="endpointDisplay"></code> — tokens set in <code>PUBLIC_TOKENS</code> at the top of the script.</p>
-
-  <div class="panel">
-    <textarea id="inputText" placeholder="Describe a data-handling practice or paste a complaint…"></textarea>
-    <div class="row">
-      <button id="checkBtn">Check</button>
-      <button class="secondary" id="clearBtn">Clear</button>
-      <button class="secondary" id="sampleBtn">Try a sample</button>
+<div class="app-container">
+  <!-- Header -->
+  <header>
+    <div class="logo-area">
+      <h1>FinComp Check</h1>
+      <p>Responsible AI Data-Privacy Compliance Guardrail Platform</p>
     </div>
-    <div class="status" id="status"></div>
-  </div>
-
-  <div class="stepper panel" id="stepper"></div>
-
-  <div class="panel result-panel" id="resultPanel">
-    <div class="verdict-row">
-      <span class="verdict-badge" id="verdictBadge"></span>
-      <span class="citation">cites <b id="citedRegulation"></b></span>
+    <div class="badge-tunnel" id="connectionBadge">
+      Local Tunnel Bridge Active
     </div>
-    <div class="reasoning-text" id="reasoning"></div>
-    <div class="corrected-note" id="correctedNote" style="display:none;"></div>
-    <details>
-      <summary>Details — audit notes, sources, redaction, audit ID</summary>
-      <div class="detail-box">
-        <div><b>Audit notes:</b> <span id="auditNotes"></span></div>
-        <div style="margin-top:6px;"><b>Audit ID:</b> <span id="auditId" class="mono"></span></div>
-        <div style="margin-top:6px;"><b>Retrieved sources:</b></div>
-        <ul class="source-list" id="sourceList"></ul>
-        <div style="margin-top:6px;"><b>Redacted text sent to the model:</b></div>
-        <div id="redactedText" style="margin-top:2px;"></div>
+  </header>
+
+  <!-- Main Workspace -->
+  <div class="main-grid">
+    <!-- Left Column: Input Panel -->
+    <div class="left-col" style="display: flex; flex-direction: column; gap: 24px;">
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Compliance Evaluation</h2>
+          <div class="status" id="status">Ready</div>
+        </div>
+        
+        <textarea id="inputText" placeholder="Paste data practice description or customer privacy complaint here..."></textarea>
+        
+        <div class="action-row">
+          <div class="btn-group">
+            <button id="checkBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              Verify Compliance
+            </button>
+            <button class="secondary" id="clearBtn">Clear</button>
+          </div>
+          <button class="secondary" id="sampleBtn" style="display: none;">Try a sample</button>
+        </div>
+
+        <!-- User Guide -->
+        <div class="guide-box">
+          <div class="guide-title">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            Verification Workflow
+          </div>
+          <div class="guide-steps">
+            <div class="guide-step">
+              <b>1. Redact PII</b>
+              NER models sanitize names, phone numbers, and addresses.
+            </div>
+            <div class="guide-step">
+              <b>2. Triage &amp; RAG</b>
+              Retrieves target articles and structures inputs.
+            </div>
+            <div class="guide-step">
+              <b>3. Core Verdict</b>
+              Checks compliance against rules &amp; injects Guardrails.
+            </div>
+            <div class="guide-step">
+              <b>4. Auditor Agent</b>
+              Independent critique verification to catch hallucinations.
+            </div>
+          </div>
+        </div>
       </div>
-    </details>
-  </div>
 
-  <div class="panel">
-    <details>
-      <summary>History (this browser)</summary>
-      <table id="historyTable">
-        <thead><tr><th>Verdict</th><th>Regulation</th><th>Audit ID</th></tr></thead>
-        <tbody id="historyBody"></tbody>
-      </table>
-    </details>
+      <!-- Test Cases Grid -->
+      <div class="panel">
+        <h3 class="panel-title" style="margin-bottom: 12px;">Evaluation Templates</h3>
+        <div class="samples-grid" id="samplesGrid"></div>
+      </div>
+    </div>
+
+    <!-- Right Column: Results & Logs -->
+    <div class="right-col" style="display: flex; flex-direction: column; gap: 24px;">
+      <!-- Stepper Progress -->
+      <div class="panel stepper" id="stepper"></div>
+
+      <!-- Verification Result Card -->
+      <div class="panel result-panel" id="resultPanel">
+        <div class="verdict-row">
+          <span class="verdict-badge" id="verdictBadge"></span>
+          <span class="citation">Citing Article <b id="citedRegulation"></b></span>
+        </div>
+        <div class="reasoning-text" id="reasoning"></div>
+        <div class="corrected-note" id="correctedNote" style="display:none;"></div>
+        
+        <details>
+          <summary>Trace Logs &amp; Audit Log Records</summary>
+          <div class="detail-box">
+            <div class="detail-item"><b>Auditor Evaluation Notes:</b> <div id="auditNotes" style="margin-top:4px; line-height: 1.4;"></div></div>
+            <div class="detail-item"><b>Audit Trail ID:</b> <span id="auditId" class="mono"></span></div>
+            <div class="detail-item">
+              <b>Retrieved Regulatory Sources:</b>
+              <ul class="source-list" id="sourceList"></ul>
+            </div>
+            <div class="detail-item">
+              <b>Model Redaction View (Sanitized Input):</b>
+              <div class="redacted-box" id="redactedText"></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- Persistent Audit Trail Logs -->
+      <div class="panel history-panel">
+        <details open>
+          <summary>Audit Log History (Local Storage)</summary>
+          <div style="max-height: 240px; overflow-y: auto; margin-top: 8px;">
+            <table id="historyTable">
+              <thead><tr><th>Verdict</th><th>Regulation</th><th>Audit ID</th></tr></thead>
+              <tbody id="historyBody"></tbody>
+            </table>
+          </div>
+        </details>
+        <div class="endpoint-indicator">
+          Webhook Endpoint: <code id="endpointDisplay"></code>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -158,6 +778,17 @@ const PUBLIC_TOKENS = {
   audit: "pk_63921897c45422060cabefac7d291e9c"
 };
 document.getElementById("endpointDisplay").textContent = ENDPOINT_URL;
+
+// Update header badge based on connection environment
+const connectionBadge = document.getElementById("connectionBadge");
+if (ENDPOINT_URL.includes("localhost") || ENDPOINT_URL.startsWith("/")) {
+  connectionBadge.textContent = "Local Tunnel Bridge Active";
+} else {
+  connectionBadge.textContent = "Cloud Gateway Active";
+  connectionBadge.style.background = "rgba(16, 185, 129, 0.1)";
+  connectionBadge.style.borderColor = "rgba(16, 185, 129, 0.2)";
+  connectionBadge.style.color = "#34d399";
+}
 
 // --- Prototype retrieval ("RAG-lite"): a hand-curated keyword index over a small
 // regulation set, scored against the input, instead of embedding the full closed set
@@ -201,10 +832,27 @@ function formatRegulationsBlock(regs) {
 const GUARD_DESC = "Input check: blocks prompt-injection & unredacted PII before the model runs. Output check: confirms valid JSON, a recognized citation, no leaked PII.";
 
 const scenarios = [
-  { label: "GDPR — Customer complaint (PII demo)", text: "Hello, my name is Maria Alvarez and I requested deletion of my account on your EU site over six months ago. You still have my email maria.alvarez@example.com and my phone number +34 612 345 678 on file, and I received a marketing email from you just last week. My address is Calle Mayor 12, Madrid, Spain. Please explain why my data has not been deleted." },
-  { label: "CCPA — Slow opt-out response", text: "We are a California-based retailer. A California resident submitted a 'Do Not Sell My Personal Information' request. It has now been 20 days and we have not yet stopped sharing their data with our ad-tech partners or confirmed the request was processed." },
-  { label: "GDPR — Compliant consent flow", text: "We are an EU-based newsletter platform. We collect subscriber emails only after an explicit opt-in checkbox that is unchecked by default, we state clearly what the email will be used for, and we delete it within 30 days of an unsubscribe or deletion request." }
+  { label: "GDPR — Customer complaint (PII demo)", desc: "Tests right to erasure + PII redaction (email, phone, address).", text: "Hello, my name is Maria Alvarez and I requested deletion of my account on your EU site over six months ago. You still have my email maria.alvarez@example.com and my phone number +34 612 345 678 on file, and I received a marketing email from you just last week. My address is Calle Mayor 12, Madrid, Spain. Please explain why my data has not been deleted." },
+  { label: "CCPA — Slow opt-out response", desc: "Tests Right to Opt-Out response time limit under CCPA.", text: "We are a California-based retailer. A California resident submitted a 'Do Not Sell My Personal Information' request. It has now been 20 days and we have not yet stopped sharing their data with our ad-tech partners or confirmed the request was processed." },
+  { label: "GDPR — Compliant consent flow", desc: "Tests valid newsletter consent configuration validation.", text: "We are an EU-based newsletter platform. We collect subscriber emails only after an explicit opt-in checkbox that is unchecked by default, we state clearly what the email will be used for, and we delete it within 30 days of an unsubscribe or deletion request." }
 ];
+
+// Dynamically render sample cards
+const samplesGrid = document.getElementById("samplesGrid");
+scenarios.forEach((s, idx) => {
+  const card = document.createElement("div");
+  card.className = "sample-card";
+  card.innerHTML = `
+    <div class="sample-label">${s.label}</div>
+    <div class="sample-desc">${s.desc}</div>
+  `;
+  card.addEventListener("click", () => {
+    document.getElementById("inputText").value = s.text;
+    document.getElementById("inputText").focus();
+  });
+  samplesGrid.appendChild(card);
+});
+
 let sampleIndex = 0;
 document.getElementById("sampleBtn").addEventListener("click", () => {
   document.getElementById("inputText").value = scenarios[sampleIndex % scenarios.length].text;
@@ -215,7 +863,7 @@ document.getElementById("clearBtn").addEventListener("click", () => {
   document.getElementById("inputText").value = "";
   document.getElementById("stepper").style.display = "none";
   document.getElementById("resultPanel").style.display = "none";
-  document.getElementById("status").textContent = "";
+  document.getElementById("status").textContent = "Ready";
 });
 
 function verdictClass(v) {
@@ -238,8 +886,8 @@ function renderHistory() {
   const body = document.getElementById("historyBody");
   const h = loadHistory();
   body.innerHTML = h.length === 0
-    ? '<tr><td colspan="3" class="status">No history yet.</td></tr>'
-    : h.slice().reverse().map((r) => `<tr><td>${r.final_verdict || ""}</td><td>${r.cited_regulation || ""}</td><td class="mono">${r.audit_id || ""}</td></tr>`).join("");
+    ? '<tr><td colspan="3" class="status">No logs recorded.</td></tr>'
+    : h.slice().reverse().map((r) => `<tr><td class="mono ${verdictClass(r.final_verdict)}">${r.final_verdict || ""}</td><td class="mono">${r.cited_regulation || ""}</td><td class="mono">${r.audit_id || ""}</td></tr>`).join("");
 }
 renderHistory();
 
@@ -258,7 +906,7 @@ const STAGES = [
 ];
 function renderStepper() {
   const el = document.getElementById("stepper");
-  el.style.display = "block";
+  el.style.display = "flex";
   el.innerHTML = STAGES.map((s) => `
     <div class="step pending" id="step-${s.key}">
       <div class="step-dot"></div>
@@ -270,9 +918,10 @@ function renderStepper() {
 }
 function setStep(key, state, summaryHtml, showGuard) {
   const step = document.getElementById(`step-${key}`);
+  if (!step) return;
   step.className = `step ${state}`;
   const summary = document.getElementById(`step-summary-${key}`);
-  summary.innerHTML = (summaryHtml || "") + (showGuard ? `<div class="guard-note pass" title="${GUARD_DESC}">Guardrails passed</div>` : "");
+  summary.innerHTML = (summaryHtml || "") + (showGuard ? `<br/><div class="guard-note pass" title="${GUARD_DESC}">Guardrails passed</div>` : "");
 }
 
 async function callStage(publicToken, payload) {
@@ -296,12 +945,12 @@ async function checkCompliance() {
   const status = document.getElementById("status");
   const checkBtn = document.getElementById("checkBtn");
   if (!text) {
-    status.textContent = "Enter a description first.";
+    status.textContent = "Please enter input text.";
     status.className = "status error";
     return;
   }
 
-  status.textContent = "";
+  status.textContent = "Verifying...";
   status.className = "status";
   checkBtn.disabled = true;
   document.getElementById("resultPanel").style.display = "none";
@@ -354,6 +1003,7 @@ async function checkCompliance() {
 
     document.getElementById("resultPanel").style.display = "block";
     saveToHistory({ ...audit, cited_regulation: audit.cited_regulation || verdict.cited_regulation });
+    status.textContent = "Done";
   } catch (err) {
     const activeStep = STAGES.map((s) => s.key).find((k) => document.getElementById(`step-${k}`).className.includes("active"));
     if (activeStep) setStep(activeStep, "failed", `<span class="error-text">${err.message}</span>`);
