@@ -18,3 +18,5 @@ Given raw data practice descriptions or customer privacy complaints, this tool r
 - **Data Privacy Teams & Compliance Officers**: Instantly audit compliance practices against GDPR/CCPA.
 - **Security Engineers**: Sanitize and protect sensitive data before sharing it with external LLMs.
 - **AI Developers**: Build and deploy reliable, critique-audited reasoning agents.
+
+<img width="800" height="697" alt="gif-1" src="https://github.com/user-attachments/assets/3ed2f07f-c506-416a-8bc8-45fc90a0d515" />
