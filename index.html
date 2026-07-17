@@ -147,7 +147,11 @@
 // fincomp-audit.pipe) so the UI can show real incremental progress instead of one long
 // wait. Update these after each `python3 test_pipeline.py <file>` run — publicToken
 // changes whenever a pipeline is restarted with a new project_id.
-const ENDPOINT_URL = "https://api.rocketride.ai/webhook";
+// Automatically detect if running locally (either served via local server or opened directly as a file)
+const IS_FILE = window.location.protocol === "file:";
+const IS_LOCAL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const ENDPOINT_URL = IS_LOCAL ? "/webhook" : (IS_FILE ? "http://127.0.0.1:20000/webhook" : "https://api.rocketride.ai/webhook");
+
 const PUBLIC_TOKENS = {
   triage: "pk_d730b605e0c6546309f632326e4f1501",
   verdict: "pk_1ff0b8f60d86aa4d1ce799d78cef0221",

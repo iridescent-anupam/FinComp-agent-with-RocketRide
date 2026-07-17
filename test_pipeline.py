@@ -27,8 +27,11 @@ import asyncio
 import json
 import os
 import sys
+import glob
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '.venv/lib/python3.13/site-packages'))
+site_packages_dirs = glob.glob(os.path.join(os.path.dirname(__file__), '.venv/lib/python3.*/site-packages'))
+if site_packages_dirs:
+    sys.path.insert(0, site_packages_dirs[0])
 from rocketride import RocketRideClient  # noqa: E402
 
 
