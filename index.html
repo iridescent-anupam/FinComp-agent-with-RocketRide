@@ -669,7 +669,10 @@
           <div class="status" id="status">Ready</div>
         </div>
         
-        <div class="samples-row" id="samplesGrid"></div>
+        <div class="samples-row">
+          <span style="font-size: 0.75rem; color: var(--muted); font-weight: 600; align-self: center;">Try a sample:</span>
+          <div id="samplesGrid" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;"></div>
+        </div>
         <textarea id="inputText" placeholder="Paste data practice description or customer privacy complaint here..."></textarea>
         
         <div class="action-row">
@@ -831,17 +834,26 @@ function formatRegulationsBlock(regs) {
 const GUARD_DESC = "Input check: blocks prompt-injection & unredacted PII before the model runs. Output check: confirms valid JSON, a recognized citation, no leaked PII.";
 
 const scenarios = [
-  { label: "GDPR — Customer complaint (PII demo)", desc: "Tests right to erasure + PII redaction (email, phone, address).", text: "Hello, my name is Maria Alvarez and I requested deletion of my account on your EU site over six months ago. You still have my email maria.alvarez@example.com and my phone number +34 612 345 678 on file, and I received a marketing email from you just last week. My address is Calle Mayor 12, Madrid, Spain. Please explain why my data has not been deleted." },
-  { label: "CCPA — Slow opt-out response", desc: "Tests Right to Opt-Out response time limit under CCPA.", text: "We are a California-based retailer. A California resident submitted a 'Do Not Sell My Personal Information' request. It has now been 20 days and we have not yet stopped sharing their data with our ad-tech partners or confirmed the request was processed." },
-  { label: "GDPR — Compliant consent flow", desc: "Tests valid newsletter consent configuration validation.", text: "We are an EU-based newsletter platform. We collect subscriber emails only after an explicit opt-in checkbox that is unchecked by default, we state clearly what the email will be used for, and we delete it within 30 days of an unsubscribe or deletion request." }
+  { label: "GDPR — Customer complaint (PII demo)",   desc: "Non-compliant: Tests right to erasure + PII redaction (email, phone, address).",         text: "Hello, my name is Maria Alvarez and I requested deletion of my account on your EU site over six months ago. You still have my email maria.alvarez@example.com and my phone number +34 612 345 678 on file, and I received a marketing email from you just last week. My address is Calle Mayor 12, Madrid, Spain. Please explain why my data has not been deleted." },
+  { label: "CCPA — Slow opt-out response",            desc: "Non-compliant: Tests Right to Opt-Out response time limit under CCPA.",                 text: "We are a California-based retailer. A California resident submitted a 'Do Not Sell My Personal Information' request. It has now been 20 days and we have not yet stopped sharing their data with our ad-tech partners or confirmed the request was processed." },
+  { label: "GDPR — Compliant consent flow",           desc: "Compliant: Tests valid newsletter consent configuration under GDPR Article 7.",          text: "We are an EU-based newsletter platform. We collect subscriber emails only after an explicit opt-in checkbox that is unchecked by default, we state clearly what the email will be used for, and we delete it within 30 days of an unsubscribe or deletion request." },
+  { label: "CCPA — Compliant opt-out handling",       desc: "Compliant: Demonstrates a correct Do Not Sell opt-out flow under CCPA Section 1798.120.", text: "We are a California-based e-commerce company. When a consumer submits a Do Not Sell My Personal Information request, we immediately stop sharing their data with all third-party advertising partners, send a written confirmation within 5 business days, and honor the opt-out for a minimum of 12 months without requiring re-submission." },
+  { label: "GDPR — Compliant data retention policy",  desc: "Compliant: Demonstrates proper purpose-limited data retention under GDPR Article 5.",    text: "Our HR platform retains employee payroll records for exactly 6 years to meet UK legal obligations, then permanently and verifiably deletes them. We do not use payroll data for any purpose beyond statutory reporting, and employees can access their own records at any time on request." }
 ];
 
 // Dynamically render sample pills
 const samplesGrid = document.getElementById("samplesGrid");
+const shortLabels = [
+  "🔴 GDPR (PII Redaction)",
+  "🔴 CCPA (Opt-Out Limit)",
+  "🟢 GDPR (Compliant Consent)",
+  "🟢 CCPA (Compliant Opt-Out)",
+  "🟢 GDPR (Data Retention)"
+];
 scenarios.forEach((s, idx) => {
   const pill = document.createElement("div");
   pill.className = "sample-pill";
-  pill.innerHTML = `📋 ${s.label.split(" — ")[0]}`;
+  pill.innerHTML = `📋 ${shortLabels[idx]}`;
   pill.title = s.desc;
   pill.addEventListener("click", () => {
     document.getElementById("inputText").value = s.text;
@@ -929,19 +941,32 @@ async function callStage(publicToken, payload) {
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
+  console.log(`Stage (${publicToken.substring(0, 8)}...) raw response:`, JSON.stringify(data));
+
   const body = data?.data?.objects?.body;
   if (!body) throw new Error("Unexpected response shape");
   if (body.error) throw new Error(body.error.message);
-  const answers = Array.isArray(body.answers) ? body.answers : [body.answers ?? body.answer ?? body];
-  const raw = answers[answers.length - 1];
-  let parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
-  if (typeof parsed === "string") {
-    try {
-      parsed = JSON.parse(parsed);
-    } catch (e) {
-      console.warn("Failed second JSON parse:", e);
-    }
+
+  // answers may be an array of JSON strings (pipeline fan-out) or a single value
+  let raw;
+  if (Array.isArray(body.answers) && body.answers.length > 0) {
+    raw = body.answers[body.answers.length - 1]; // last deduplicated answer
+  } else {
+    raw = body.answers ?? body.answer ?? body;
   }
+
+  // Recursively parse until we have a plain object
+  let parsed = raw;
+  for (let i = 0; i < 5; i++) {
+    if (typeof parsed !== "string") break;
+    try { parsed = JSON.parse(parsed); } catch (e) { break; }
+  }
+  // If still a string (LLM wrapped in markdown fences), strip fences and retry
+  if (typeof parsed === "string") {
+    const stripped = parsed.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+    try { parsed = JSON.parse(stripped); } catch (e) {}
+  }
+
   console.log(`Stage (${publicToken.substring(0, 8)}...) parsed result:`, parsed);
   return parsed;
 }
@@ -959,7 +984,21 @@ async function checkCompliance() {
   status.textContent = "Verifying...";
   status.className = "status";
   checkBtn.disabled = true;
+  
+  // Clear previous results and reset trace log to avoid stale output
   document.getElementById("resultPanel").style.display = "none";
+  document.getElementById("verdictBadge").textContent = "";
+  document.getElementById("citedRegulation").textContent = "";
+  document.getElementById("reasoning").textContent = "";
+  document.getElementById("auditNotes").textContent = "";
+  document.getElementById("auditId").textContent = "";
+  document.getElementById("redactedText").textContent = "";
+  document.getElementById("sourceList").innerHTML = "";
+  document.getElementById("correctedNote").style.display = "none";
+  // Force-close trace log <details> so it doesn't show stale content
+  const traceDetails = document.querySelector("details");
+  if (traceDetails) traceDetails.removeAttribute("open");
+  
   renderStepper();
 
   try {

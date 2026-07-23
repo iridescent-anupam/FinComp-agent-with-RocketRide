@@ -46,9 +46,12 @@ async def forward_request(project_id, source, payload):
         if not task_token:
             raise RuntimeError(f"No active task running for project {project_id}")
         
-        # Send data to the pipeline via WebSocket/DAP
+        # Send data to the pipeline via WebSocket/DAP and WAIT for the full result
         print(f"Forwarding payload to task token: {task_token}...")
-        response = await client.send(task_token, payload, mimetype='text/plain')
+        response = await asyncio.wait_for(
+            client.send(task_token, payload, mimetype='text/plain'),
+            timeout=180  # wait up to 3 minutes for pipeline to complete
+        )
         return response
     finally:
         await client.disconnect()
